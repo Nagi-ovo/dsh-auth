@@ -1,0 +1,11 @@
+# dsh-auth bundle patch: mounts the subscription OAuth provider routes and
+# the /auth command as a profile layer
+# (`dsh plugin --profile <name> add dsh-auth`).
+#
+# Entry-level inject — never a code-level one (see the plugin module's
+# `inject` export): a stale patch must not deadlock a composition whose
+# llm/commands services arrive later or are absent entirely.
+- insert:
+    - id: dsh-auth
+      name: 'dsh-auth'
+      inject: [llm, commands]

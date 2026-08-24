@@ -1,0 +1,75 @@
+{
+  "name": "dsh-auth",
+  "version": "0.1.0",
+  "description": "Subscription OAuth sign-in (ChatGPT/Codex, Claude Pro/Max, SuperGrok) as LLM provider routes for DeepSeek Harness — no dsh source patch, bundled with dsh-tui",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccch1mneyyy/dsh-auth.git"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "dsh-plugin.json",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": "^22.19 || >=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('lib', { recursive: true, force: true })\"",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "npm run build && npm run smoke"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.82.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-attachment": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-commands": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-llm-pi-ai": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-user-questions": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-attachment": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-attachment": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-commands": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-llm-pi-ai": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/dsh-user-questions": "^0.1.0-rc.6 || ^0.1.1-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@types/node": "^22.0.0",
+    "typescript": "^6.0.3"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@google/genai",
+      "protobufjs"
+    ]
+  }
+}
