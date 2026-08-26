@@ -114,6 +114,40 @@ try {
   }
   ok(unknownProvider.includes('not an OAuth provider'), 'building an unmounted provider fails loudly')
 
+  // ── per-model overrides ─────────────────────────────────────────────────
+  console.log('model overrides')
+  const solBase = profile.piProvider.getModels().find(model => model.id === 'gpt-5.6-sol')
+  ok(solBase !== undefined && typeof solBase?.contextWindow === 'number', 'the catalog ships a numeric context window for gpt-5.6-sol')
+  const overridden = buildOAuthProfile('openai-codex', {
+    'gpt-5.6-sol': { contextWindow: 1000000 },
+  })
+  const sol = overridden.piProvider.getModels().find(model => model.id === 'gpt-5.6-sol')
+  ok(sol?.contextWindow === 1000000, 'modelOverrides contextWindow lands on the target model')
+  ok(sol?.maxTokens === solBase?.maxTokens, 'untouched fields keep the installed catalog value')
+  const untouched = overridden.piProvider.getModels().find(model => model.id === 'gpt-5.5')
+  ok(untouched?.contextWindow === solBase?.contextWindow, 'models without an override stay on the catalog value')
+  ok(overridden.piProvider.getModels().length === profile.piProvider.getModels().length, 'the model list keeps every catalog entry')
+  ok(overridden.piProvider.auth.oauth !== undefined, 'the provider keeps its OAuth flow object under overrides')
+  ok(profile.piProvider.getModels().find(model => model.id === 'gpt-5.6-sol')?.contextWindow === solBase?.contextWindow,
+    'the installed catalog object is not mutated in place')
+  let unknownOverride = ''
+  try {
+    buildOAuthProfile('openai-codex', { 'not-a-model': { contextWindow: 1 } })
+  } catch (error) {
+    unknownOverride = error.message
+  }
+  ok(unknownOverride.includes('does not ship in the installed catalog'), 'an override naming an unknown model fails loudly')
+  // Overrides are provider-scoped: a dict that tunes a Codex model is refused
+  // on a provider whose catalog does not ship it (the global-dict shape made
+  // one cross-provider model id break every provider's boot).
+  let crossProviderOverride = ''
+  try {
+    buildOAuthProfile('anthropic', { 'gpt-5.6-sol': { contextWindow: 1000000 } })
+  } catch (error) {
+    crossProviderOverride = error.message
+  }
+  ok(crossProviderOverride.includes('does not ship in the installed catalog'), 'an override naming a model another provider ships is refused on this provider')
+
   // ── credential-gated adapter ─────────────────────────────────────────────
   console.log('credential-gated adapter')
   const gateStore = new CredentialFile(join(root, 'gate', 'credentials.json'))

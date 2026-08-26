@@ -17,6 +17,13 @@
  *   config:
  *     providers: [openai-codex, anthropic, xai]   # subset of the mounted set
  *     # credentialsFile: /secure/path/credentials.json   # default $DSH_HOME/dsh-auth/
+ *     # Per-provider catalog overrides, keyed by provider id then model id:
+ *     # any optional field keeps the installed catalog's value. The example
+ *     # below tunes the Codex `gpt-5.6-sol` context window to 1M tokens.
+ *     # modelOverrides:
+ *     #   openai-codex:
+ *     #     gpt-5.6-sol:
+ *     #       contextWindow: 1000000
  * ```
  *
  * Routes register individually: a route another adapter family already owns
@@ -38,7 +45,7 @@ import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import type { PiAiAdapterOptions } from '@deepseek-ai/dsh-llm-pi-ai'
 import type { AuthContext } from '@earendil-works/pi-ai'
 import { CredentialFile, defaultCredentialsFile } from './credentials.js'
-import { buildOAuthProfile, OAUTH_PROVIDER_IDS } from './profiles.js'
+import { buildOAuthProfile, OAUTH_PROVIDER_IDS, type ModelOverride } from './profiles.js'
 import type { AskFn } from './interaction.js'
 import { createDshAuthApi, DshAuthService } from './service.js'
 import { createAuthCommandHandler } from './command.js'
@@ -75,11 +82,24 @@ export interface Config {
   providers?: string[]
   /** Credential file override; default `$DSH_HOME/dsh-auth/credentials.json`. */
   credentialsFile?: string
+  /**
+   * Per-provider catalog overrides, keyed by provider id then model id (see
+   * {@link ModelOverride}). A provider key naming a provider that is not
+   * among the mounted set — or a model id the provider's catalog does not
+   * ship — is refused, never skipped, so a typo lands as a boot error.
+   */
+  modelOverrides?: Record<string, Record<string, ModelOverride>>
 }
+
+const modelOverride = z.object({
+  contextWindow: z.number().step(1).min(1),
+  maxTokens: z.number().step(1).min(1),
+})
 
 export const Config: z<Config> = z.object({
   providers: z.array(z.string()).default([...OAUTH_PROVIDER_IDS]),
   credentialsFile: z.string(),
+  modelOverrides: z.dict(z.dict(modelOverride)),
 })
 
 export type { DshAuthApi, DshAuthLoginResult, DshAuthSignInStatus, DshAuthService } from './service.js'
@@ -88,7 +108,7 @@ export { QuestionBridge, describeEvent } from './interaction.js'
 export type { AskFn, QuestionBridgeHelpers } from './interaction.js'
 export { copyToClipboard, openInBrowser, openerFor } from './opener.js'
 export { CredentialFile, defaultCredentialsFile } from './credentials.js'
-export { OAUTH_PROVIDER_IDS, buildOAuthProfile } from './profiles.js'
+export { OAUTH_PROVIDER_IDS, buildOAuthProfile, type ModelOverride } from './profiles.js'
 
 /**
  * The ambient auth context providers may consult while resolving their own
@@ -143,9 +163,20 @@ export function apply(ctx: Context, config: Config): void {
       `dsh-auth: providers must be a non-empty subset of [${OAUTH_PROVIDER_IDS.join(', ')}]; got [${configured.join(', ')}]`,
     )
   }
+  // Overrides are provider-scoped: a provider key outside the mounted set is
+  // refused, never skipped, so a typo lands at boot instead of silently
+  // serving the installed catalog.
+  const overrides = config.modelOverrides ?? {}
+  const unknownOverridden = Object.keys(overrides).filter(id => !configured.includes(id))
+  if (unknownOverridden.length > 0) {
+    throw new Error(
+      `dsh-auth: modelOverrides names provider "${unknownOverridden[0]}", which is not among the mounted providers [${configured.join(', ')}]`,
+    )
+  }
   // Profile construction validates the installed catalog loudly: a pi-ai
-  // downgrade that dropped a provider fails the boot that asked for it.
-  const profiles = new Map(configured.map(id => [id, buildOAuthProfile(id)]))
+  // downgrade that dropped a provider fails the boot that asked for it, and
+  // a per-model miss is refused per route (see buildOAuthProfile).
+  const profiles = new Map(configured.map(id => [id, buildOAuthProfile(id, overrides[id])]))
   const store = new CredentialFile(config.credentialsFile ?? defaultCredentialsFile())
 
   // Fail closed on store trouble: a credential file that cannot be read
