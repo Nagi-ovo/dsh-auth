@@ -29,9 +29,9 @@
  * @module dsh-auth/interaction
  */
 
-import type { AuthEvent, AuthInteraction, AuthPrompt } from '@earendil-works/pi-ai'
 import type { AskUserQuestionItem, AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import { copyToClipboard, openInBrowser } from './opener.js'
+import type { PiAiAuthEvent, PiAiAuthInteraction, PiAiAuthPrompt } from './pi-ai.js'
 
 /** The ask surface this bridge drives (usually `ctx.userQuestions.ask`). */
 export type AskFn = (request: {
@@ -46,7 +46,7 @@ export interface QuestionBridgeHelpers {
 }
 
 /** Human-readable copy for one notify event. */
-export function describeEvent(event: AuthEvent): string {
+export function describeEvent(event: PiAiAuthEvent): string {
   switch (event.type) {
     case 'auth_url':
       return `Open this URL to authorize (a local callback completes sign-in):\n${event.url}`
@@ -102,7 +102,7 @@ function deviceCodeView(userCode: string, verificationUri: string, opened: boole
  * `settle()` retires it when the flow ends (any outcome), so a completed or
  * failed login never leaves an interactive dead end on screen.
  */
-export class QuestionBridge implements AuthInteraction {
+export class QuestionBridge implements PiAiAuthInteraction {
   readonly signal: AbortSignal
   private readonly openUrl: (url: string) => boolean
   private readonly copy: (text: string) => Promise<boolean>
@@ -119,7 +119,7 @@ export class QuestionBridge implements AuthInteraction {
     this.copy = helpers.copyText ?? copyToClipboard
   }
 
-  async prompt(prompt: AuthPrompt): Promise<string> {
+  async prompt(prompt: PiAiAuthPrompt): Promise<string> {
     const secretNote = prompt.type === 'secret' ? ' (input is not masked on this surface — mind your screen)' : ''
     const question: AskUserQuestionItem = prompt.type === 'select'
       ? {
@@ -154,7 +154,7 @@ export class QuestionBridge implements AuthInteraction {
     return custom
   }
 
-  notify(event: AuthEvent): void {
+  notify(event: PiAiAuthEvent): void {
     if (event.type === 'auth_url') {
       if (this.waiting !== undefined) return
       const opened = this.openUrl(event.url)

@@ -43,12 +43,12 @@ import type { LlmAdapter, LlmModelInfo } from '@deepseek-ai/dsh-llm'
 import type { CommandInvocation, CommandResult } from '@deepseek-ai/dsh-commands'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import type { PiAiAdapterOptions } from '@deepseek-ai/dsh-llm-pi-ai'
-import type { AuthContext } from '@earendil-works/pi-ai'
 import { CredentialFile, defaultCredentialsFile } from './credentials.js'
 import { buildOAuthProfile, OAUTH_PROVIDER_IDS, type ModelOverride } from './profiles.js'
 import type { AskFn } from './interaction.js'
 import { createDshAuthApi, DshAuthService } from './service.js'
 import { createAuthCommandHandler } from './command.js'
+import type { PiAiAuthContext } from './pi-ai.js'
 
 export const name = 'dsh-auth'
 /**
@@ -117,7 +117,7 @@ export { OAUTH_PROVIDER_IDS, buildOAuthProfile, type ModelOverride } from './pro
  * `~/.aws/credentials` and friends — are facts about where this process
  * runs, not about the project under edit).
  */
-function hostAuthContext(): AuthContext {
+function hostAuthContext(): PiAiAuthContext {
   return {
     env: async name => process.env[name],
     fileExists: path => Promise.resolve(
