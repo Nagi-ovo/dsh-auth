@@ -45,6 +45,9 @@ signed-in providers' catalogs (credential-gated — see below).
   only after that provider is signed in** (credential-gated listing) — sign
   in and the catalog appears, sign out and it disappears; model ids already
   saved in sessions stay resolvable either way.
+- Loads those Provider objects from the exact pi-ai dependency owned by the
+  installed `dsh-llm-pi-ai`. rc and alpha hosts therefore keep their supported
+  pi-ai versions without passing Provider objects across package instances.
 - `/auth login [provider]` runs the provider's OAuth flow interactively. The
   waiting panel behaves the way pi's host does: the authorization URL is
   **opened in your browser automatically** (never hand-copied — the URL is

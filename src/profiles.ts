@@ -14,10 +14,9 @@
  * @module dsh-auth/profiles
  */
 
-import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
-import type { Provider } from '@earendil-works/pi-ai'
 import { resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
 import type { ResolvedPiAiProviderProfile } from '@deepseek-ai/dsh-llm-pi-ai'
+import { adapterBuiltinProviders, type PiAiProvider } from './pi-ai.js'
 
 /** Provider routes this build mounts, in picker order. */
 export const OAUTH_PROVIDER_IDS = ['openai-codex', 'anthropic', 'xai'] as const
@@ -47,8 +46,8 @@ const REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
 const STREAM_IDLE_TIMEOUT_MS = 300_000
 
 /** The installed pi-ai catalog provider for one route, whose OAuth flow we mount. */
-function catalogProviderOf(id: string): Provider {
-  const found = builtinProviders().find(provider => provider.id === id)
+function catalogProviderOf(id: string): PiAiProvider {
+  const found = adapterBuiltinProviders().find(provider => provider.id === id)
   if (found === undefined) {
     throw new Error(
       `dsh-auth: the installed pi-ai catalog ships no provider "${id}"; `
@@ -59,7 +58,7 @@ function catalogProviderOf(id: string): Provider {
 }
 
 /** The OAuth flow object for one mounted route (login/refresh/toAuth live here). */
-export function oauthOf(route: Provider): NonNullable<Provider['auth']['oauth']> {
+export function oauthOf(route: PiAiProvider): NonNullable<PiAiProvider['auth']['oauth']> {
   const oauth = route.auth.oauth
   if (oauth === undefined) {
     throw new Error(`dsh-auth: pi-ai provider "${route.id}" ships no OAuth flow`)
@@ -77,9 +76,9 @@ export function oauthOf(route: Provider): NonNullable<Provider['auth']['oauth']>
  * @returns the catalog provider, or a shallow clone carrying overridden models.
  */
 function withModelOverrides(
-  catalog: Provider,
+  catalog: PiAiProvider,
   overrides: Readonly<Record<string, ModelOverride>> | undefined,
-): Provider {
+): PiAiProvider {
   if (overrides === undefined || Object.keys(overrides).length === 0) return catalog
   const catalogModels = new Map(catalog.getModels().map(model => [model.id, model] as const))
   for (const id of Object.keys(overrides)) {
